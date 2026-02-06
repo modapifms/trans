@@ -47,9 +47,21 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.4.3/proj4.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4leaflet/1.0.1/proj4leaflet.min.js"></script>
         <script>
-        var map = L.map('map', {
-            zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[43.50602564113576,6.487314472891667],[43.50651017086385,6.488530468047703]]);
+   // 1. Définition de la projection Lambert 93
+var crs = new L.Proj.CRS('EPSG:2154',
+  '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+  {
+    resolutions: [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 0.5, 0.25]
+  }
+);
+
+// 2. Initialisation de la carte avec le CRS
+var map = L.map('map', {
+    crs: crs, // <--- Indispensable pour voir vos calques
+    zoomControl:false, 
+    maxZoom:28, 
+    minZoom:1
+}).fitBounds([[43.50602564113576,6.487314472891667],[43.50651017086385,6.488530468047703]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
