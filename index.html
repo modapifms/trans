@@ -52,7 +52,7 @@
 
 <script>
 // ======================================================
-// 1. CRS EPSG:2154 – RÉSOLUTIONS ÉTENDUES POUR ZOOM
+// 1. CRS EPSG:2154
 // ======================================================
 var crs = new L.Proj.CRS(
     'EPSG:2154',
@@ -64,15 +64,15 @@ var crs = new L.Proj.CRS(
             2.8, 1.4, 0.7, 0.35, 0.14, 0.07, 0.03, 0.01,
             0.005, 0.001, 0.0005, 0.00025, 0.000125,
             0.0000625, 0.00003125, 0.000015625,
-            0.0000078125, 0.00000390625, 0.000001953125 // Supports zooms > 20
+            0.0000078125, 0.00000390625, 0.000001953125
         ]
     }
 );
 
 // ======================================================
-// 2. INITIALISATION CARTE ET VARIABLES GLOBALES
+// 2. INITIALISATION CARTE
 // ======================================================
-var highlightLayer = null; // Pour stocker la surbrillance
+var highlightLayer = null;
 
 var map = L.map('map', {
     crs: crs,
@@ -87,7 +87,7 @@ new L.Hash(map);
 map.setView([43.5062, 6.4879], 20);
 
 // ======================================================
-// 3. OUTILS ET GROUPES
+// 3. OUTILS
 // ======================================================
 new L.Control.Measure({
     position: 'topleft',
@@ -157,7 +157,6 @@ var layer_Mur_6 = L.geoJson(json_Mur_6, {
     onEachFeature: popupSimple
 }).addTo(map);
 
-// Ajout au groupe global pour la recherche
 bounds_group.addLayer(layer_2ndDcap_Fosses_0);
 bounds_group.addLayer(layer_2ndDcap_Foyer_1);
 bounds_group.addLayer(layer_DRAINSCONTEMPORAINS_2);
@@ -166,7 +165,6 @@ bounds_group.addLayer(layer_Fosses_4);
 bounds_group.addLayer(layer_Foyer_5);
 bounds_group.addLayer(layer_Mur_6);
 
-// Arborescence des couches
 L.control.layers.tree(null, [
     { label: "Mur", layer: layer_Mur_6 },
     { label: "Foyer", layer: layer_Foyer_5 },
@@ -178,20 +176,19 @@ L.control.layers.tree(null, [
 ], { collapsed: true }).addTo(map);
 
 // ======================================================
-// 6. FONCTION DE ZOOM ET SURBRILLANCE
+// 6. FONCTION DE ZOOM CORRIGÉE (VERSION ROBUSTE PROJ4)
 // ======================================================
 function zoomToFeatureById(targetId) {
     if (!targetId) return;
 
     let found = false;
 
-    // Supprimer la surbrillance précédente
     if (highlightLayer) {
         map.removeLayer(highlightLayer);
     }
 
     bounds_group.eachLayer(function(layer) {
-        if (found || !layer.eachLayer) return;
+        if (found) return;
 
         layer.eachLayer(function(f) {
             if (found) return;
@@ -199,45 +196,32 @@ function zoomToFeatureById(targetId) {
             const id = f.feature && f.feature.properties && f.feature.properties.id;
             if (String(id) !== String(targetId)) return;
 
-            let center;
-
-            // Déterminer le centre de l'objet
-            if (f.getBounds) {
-                const b = f.getBounds();
-                center = [(b.getSouth() + b.getNorth()) / 2, (b.getWest() + b.getEast()) / 2];
-            } else if (f.getLatLng) {
-                const ll = f.getLatLng();
-                center = [ll.lat, ll.lng];
-            }
-
-            if (!center) return;
-
-            // --- CRÉATION DE LA SURBRILLANCE ---
+            // Création de la surbrillance
             highlightLayer = L.geoJson(f.feature, {
                 style: {
-                    color: '#FF0000',      // Rouge vif
-                    weight: 4,             // Épaisseur
-                    fillOpacity: 0.3,      // Remplissage léger
-                    dashArray: '5, 5',     // Pointillés
-                    interactive: false      // Ne bloque pas les clics
+                    color: '#FF0000',
+                    weight: 5,
+                    fillOpacity: 0.4,
+                    dashArray: '5, 5',
+                    interactive: false
                 }
             }).addTo(map);
 
-            // Zoom sur l'objet (ajusté à 24 pour une précision archéologique)
-            const delta = 0.000001;
-            const targetBounds = L.latLngBounds(
-                [center[0] - delta, center[1] - delta],
-                [center[0] + delta, center[1] + delta]
-            );
+            // Correction Lambert-93 : On utilise le centre du polygone calculé par Leaflet
+            // mais on applique un flyTo au centre des bounds pour forcer le repositionnement
+            const bounds = f.getBounds();
+            const center = bounds.getCenter();
 
-            map.flyToBounds(targetBounds, {
-                maxZoom: 18,
+            // Zoom agressif pour la précision archéologique (ajusté à 26)
+            map.flyTo(center, 18, {
                 animate: true,
-                duration: 0.8
+                duration: 1.0
             });
 
-            // Ouvrir la popup après l'animation
-            setTimeout(() => f.openPopup(), 800);
+            setTimeout(() => {
+                f.openPopup();
+            }, 1100);
+
             found = true;
         });
     });
@@ -248,14 +232,14 @@ function zoomToFeatureById(targetId) {
 }
 
 // ======================================================
-// 7. GESTION DE L'URL AU CHARGEMENT
+// 7. GESTION DE L'URL
 // ======================================================
 window.addEventListener('load', function() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id') || params.get('search');
     if (id) {
-        // Délai pour laisser les couches GeoJSON se charger complètement
-        setTimeout(() => zoomToFeatureById(id), 1000);
+        // Augmentation du délai pour garantir le chargement du GeoJSON
+        setTimeout(() => zoomToFeatureById(id), 1200);
     }
 });
 </script>
