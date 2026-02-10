@@ -110,12 +110,27 @@
         var zoomControl = L.control.zoom({
             position: 'topleft'
         }).addTo(map);
-        var measureControl = new L.Control.Measure({
+var measureControl = new L.Control.Measure({
             position: 'topleft',
-            primaryLengthUnit: 'meters',
-            secondaryLengthUnit: 'kilometers',
+            primaryLengthUnit: 'centimeters',
+            secondaryLengthUnit: 'meters',
             primaryAreaUnit: 'sqmeters',
-            secondaryAreaUnit: 'hectares'
+            // On définit manuellement l'unité 'centimeters' car elle n'existe pas par défaut
+            units: {
+                centimeters: {
+                    factor: 100, // Multiplie les mètres par 100
+                    display: 'cm',
+                    decimals: 1
+                },
+                meters: {
+                    factor: 1,
+                    display: 'm',
+                    decimals: 2
+                }
+            },
+            localization: 'fr',
+            activeColor: '#abe67e',
+            completedColor: '#c8f2be'
         });
         measureControl.addTo(map);
         document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
@@ -256,7 +271,17 @@
 
         // Lancer la recherche au chargement de la page
         searchFromUrl();
-		
+		// --- NOUVEL OUTIL DE MESURE AU CENTIMÈTRE ---
+var measurePoints = [];
+var measureLine = L.polyline([], {color: 'red', weight: 3}).addTo(map);
+var measureLabel = L.marker([0, 0], {
+    icon: L.divIcon({
+        className: 'measure-label',
+        html: '<div style="background:white; padding:2px 5px; border:1px solid red; border-radius:3px; white-space:nowrap; font-weight:bold;">0 cm</div>',
+        iconSize: [0, 0]
+    })
+});
         </script>        
+		
     </body>
 </html>
