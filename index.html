@@ -42,7 +42,7 @@
         <script>
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[43.50577137556753,6.487185682854467],[43.50660805269363,6.489018500772168]]);
+        }).fitBounds([[43.50596636577407,6.487571667792923],[43.50639348182651,6.488948026352681]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
@@ -110,7 +110,7 @@
         var zoomControl = L.control.zoom({
             position: 'topleft'
         }).addTo(map);
-var measureControl = new L.Control.Measure({
+ var measureControl = new L.Control.Measure({
             position: 'topleft',
             primaryLengthUnit: 'centimeters',
             secondaryLengthUnit: 'meters',
@@ -192,6 +192,10 @@ var measureControl = new L.Control.Measure({
                         <th scope="row">Type St.</th>\
                         <td>' + (feature.properties['Type St.'] !== null ? autolinker.link(String(feature.properties['Type St.']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
+                    <tr>\
+                        <th scope="row">Unité Str</th>\
+                        <td>' + (feature.properties['Unité Str'] !== null ? autolinker.link(String(feature.properties['Unité Str']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
                 </table>';
             var content = removeEmptyRowsFromPopupContent(popupContent, feature);
 			layer.on('popupopen', function(e) {
@@ -200,8 +204,85 @@ var measureControl = new L.Control.Measure({
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_TEP_1_0() {
-            return {
+        function style_TEP_1_0(feature) {
+            switch(String(feature.properties['Phase'])) {
+                case 'Antiquité':
+                    return {
+                pane: 'pane_TEP_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,0,0,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Moderne':
+                    return {
+                pane: 'pane_TEP_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,0,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Contemporain':
+                    return {
+                pane: 'pane_TEP_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,224,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Protohistoire':
+                    return {
+                pane: 'pane_TEP_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(128,0,128,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Néolithique':
+                    return {
+                pane: 'pane_TEP_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,0,255,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
                 pane: 'pane_TEP_1',
                 opacity: 1,
                 color: 'rgba(35,35,35,1.0)',
@@ -213,6 +294,8 @@ var measureControl = new L.Control.Measure({
                 fillOpacity: 1,
                 fillColor: 'rgba(183,185,186,1.0)',
                 interactive: true,
+            }
+                    break;
             }
         }
         map.createPane('pane_TEP_1');
@@ -230,44 +313,48 @@ var measureControl = new L.Control.Measure({
         bounds_group.addLayer(layer_TEP_1);
         map.addLayer(layer_TEP_1);
         setBounds();
-
         function searchFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
-            const searchValue = urlParams.get('search');
+const searchValue = urlParams.get('search');
 
-            if (searchValue) {
-                // Liste de toutes vos couches où chercher
-                var layers = [
-                    layer_TEP_1, 
-                    layer_Limiteemprise_0
-                ];
+    if (searchValue) {
+        var layers = [layer_TEP_1, layer_Limiteemprise_0];
+        var found = false;
 
-                var found = false;
+        // Création d'une RegExp pour trouver le nombre exact
+        // \b assure que c'est une "frontière de mot" (évite 13 dans 1348)
+        var regex = new RegExp("\\b" + searchValue + "\\b");
 
-                layers.forEach(function(layer) {
-                    layer.eachLayer(function(featureLayer) {
-                        // On compare l'ID (en string) avec la recherche
-                        if (featureLayer.feature.properties.id && String(featureLayer.feature.properties.id) === searchValue) {
-                            
-                            // 1. Zoomer sur le polygone
-                            if (featureLayer.getBounds) {
-                                map.fitBounds(featureLayer.getBounds(), {maxZoom: 24});
-                            } else if (featureLayer.getLatLng) {
-                                map.setView(featureLayer.getLatLng(), 24);
-                            }
+        layers.forEach(function(layer) {
+            layer.eachLayer(function(featureLayer) {
+                var props = featureLayer.feature.properties;
+                
+                // Vérification de l'ID (string)
+                var matchId = props.id && String(props.id) === searchValue;
+                
+                // Vérification précise dans "Unité Str"
+                var matchUS = props['Unité Str'] && regex.test(String(props['Unité Str']));
 
-                            // 2. Ouvrir le popup pour confirmer
-                            featureLayer.openPopup();
-                            found = true;
-                        }
-                    });
-                });
+                if (matchId || matchUS) {
+                    // Zoomer sur l'élément
+                    if (featureLayer.getBounds) {
+                        map.fitBounds(featureLayer.getBounds(), {maxZoom: 24});
+                    } else if (featureLayer.getLatLng) {
+                        map.setView(featureLayer.getLatLng(), 24);
+                    }
 
-                if (!found) {
-                    console.warn("Aucun élément trouvé pour l'ID: " + searchValue);
+                    // Ouvrir le popup
+                    featureLayer.openPopup();
+                    found = true;
                 }
-            }
+            });
+        });
+
+        if (!found) {
+            console.warn("Aucun élément trouvé pour : " + searchValue);
         }
+    }
+}
 
         // Lancer la recherche au chargement de la page
         searchFromUrl();
@@ -281,7 +368,7 @@ var measureLabel = L.marker([0, 0], {
         iconSize: [0, 0]
     })
 });
+
         </script>        
-		
     </body>
 </html>
