@@ -368,6 +368,44 @@ var measureLabel = L.marker([0, 0], {
         iconSize: [0, 0]
     })
 });
+			// --- CALCUL DE SURFACE ARCHÉOLOGIQUE ---
+function getArcheoArea(layer) {
+    var latlngs = layer.getLatLngs()[0];
+    if (Array.isArray(latlngs[0])) latlngs = latlngs[0];
+    
+    var area = 0;
+    // Facteurs de conversion locaux pour transformer les degrés en mètres
+    // Basé sur votre position (environ 43.5° Nord)
+    var dlat = 111132; 
+    var dlng = 80750; 
+
+    for (var i = 0; i < latlngs.length; i++) {
+        var j = (i + 1) % latlngs.length;
+        // Conversion des degrés en mètres relative au premier point
+        var x1 = latlngs[i].lng * dlng;
+        var y1 = latlngs[i].lat * dlat;
+        var x2 = latlngs[j].lng * dlng;
+        var y2 = latlngs[j].lat * dlat;
+        
+        area += (x1 * y2) - (x2 * y1);
+    }
+    return Math.abs(area / 2);
+}
+
+map.on('popupopen', function(e) {
+    var layer = e.popup._source;
+    if (layer && (layer instanceof L.Polygon)) {
+        var s = getArcheoArea(layer);
+        
+        // Formatage intelligent
+        var txt = s < 1 ? (s * 10000).toFixed(0) + " cm²" : s.toFixed(2) + " m²";
+        
+        var content = e.popup.getContent();
+        if (!content.includes("Surface :")) {
+            e.popup.setContent(content + "<br><b style='color:black;'>Surface : </b>" + txt);
+        }
+    }
+});
 
         </script>        
     </body>
