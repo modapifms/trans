@@ -313,51 +313,77 @@
         bounds_group.addLayer(layer_TEP_1);
         map.addLayer(layer_TEP_1);
         setBounds();
-        function searchFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-const searchValue = urlParams.get('search');
+function searchFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchValue = urlParams.get('search');
 
     if (searchValue) {
-        var layers = [layer_TEP_1, layer_Limiteemprise_0];
-        var found = false;
+        // On sépare les valeurs par des virgules et on nettoie les espaces
+        var cibles = searchValue.split(',').map(function(item) {
+            return item.trim();
+        });
 
-        // Création d'une RegExp pour trouver le nombre exact
-        // \b assure que c'est une "frontière de mot" (évite 13 dans 1348)
-        var regex = new RegExp("\\b" + searchValue + "\\b");
+        var layers = [layer_TEP_1, layer_Limiteemprise_0];
+        var foundFeatures = []; // Pour stocker les éléments trouvés
+        var globalBounds = L.latLngBounds([]); // Pour calculer le zoom global
 
         layers.forEach(function(layer) {
             layer.eachLayer(function(featureLayer) {
                 var props = featureLayer.feature.properties;
                 
-                // Vérification de l'ID (string)
-                var matchId = props.id && String(props.id) === searchValue;
-                
-                // Vérification précise dans "Unité Str"
-                var matchUS = props['Unité Str'] && regex.test(String(props['Unité Str']));
+                // On vérifie si l'ID ou l'Unité Str fait partie de notre liste de cibles
+                var valId = props.id ? String(props.id) : "";
+                var valUS = props['Unité Str'] ? String(props['Unité Str']) : "";
+                var valUS_alt = props['Unite str_'] ? String(props['Unite str_']) : "";
 
-                if (matchId || matchUS) {
-                    // Zoomer sur l'élément
+                // Vérification si l'une des valeurs de la couche est dans notre liste d'URL
+                var isMatch = cibles.some(function(cible) {
+                    // Match exact pour l'ID ou RegExp pour l'Unité Str
+                    var regex = new RegExp("\\b" + cible + "\\b");
+                    return valId === cible || regex.test(valUS) || regex.test(valUS_alt);
+                });
+
+                if (isMatch) {
+                    foundFeatures.push(featureLayer);
+                    
+                    // On étend les limites pour le zoom final
                     if (featureLayer.getBounds) {
-                        map.fitBounds(featureLayer.getBounds(), {maxZoom: 24});
+                        globalBounds.extend(featureLayer.getBounds());
                     } else if (featureLayer.getLatLng) {
-                        map.setView(featureLayer.getLatLng(), 24);
+                        globalBounds.extend(featureLayer.getLatLng());
                     }
 
-                    // Ouvrir le popup
-                    featureLayer.openPopup();
-                    found = true;
+                   // --- STYLE ROUGE LÉGER ---
+                    featureLayer.setStyle({
+                        color: '#e74c3c',      // Contour rouge plus soutenu
+                        weight: 3,             // Épaisseur du trait
+                        fillColor: '#ff0000',  // Remplissage rouge
+                        fillOpacity: 0.3       // Opacité légère (0.3 = 30%)
+                    });
                 }
             });
         });
 
-        if (!found) {
+        // Une fois la boucle finie, on agit sur les résultats
+        if (foundFeatures.length > 0) {
+            // Zoomer pour voir TOUS les éléments trouvés
+            map.fitBounds(globalBounds, {
+                padding: [50, 50], 
+                maxZoom: 24
+            });
+
+            // Si on n'en a trouvé qu'un seul, on ouvre sa popup
+            if (foundFeatures.length === 1) {
+                foundFeatures[0].openPopup();
+            }
+        } else {
             console.warn("Aucun élément trouvé pour : " + searchValue);
         }
     }
 }
 
-        // Lancer la recherche au chargement de la page
-        searchFromUrl();
+// Lancer la recherche avec un petit délai pour laisser les GeoJSON charger
+setTimeout(searchFromUrl, 500);
 		// --- NOUVEL OUTIL DE MESURE AU CENTIMÈTRE ---
 var measurePoints = [];
 var measureLine = L.polyline([], {color: 'red', weight: 3}).addTo(map);
@@ -368,7 +394,7 @@ var measureLabel = L.marker([0, 0], {
         iconSize: [0, 0]
     })
 });
-			// --- CALCUL DE SURFACE ARCHÉOLOGIQUE ---
+// --- CALCUL DE SURFACE ARCHÉOLOGIQUE ---
 function getArcheoArea(layer) {
     var latlngs = layer.getLatLngs()[0];
     if (Array.isArray(latlngs[0])) latlngs = latlngs[0];
